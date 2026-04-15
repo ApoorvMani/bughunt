@@ -1,0 +1,21 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+dist/
+build/
+.venv/
+
+# Project-specific sensitive data
+engagements/
+knowledge_base/
+data/
+*.db
+*.sqlite
+
+# Secrets
+.env
+
+# OS noise
+.DS_Store
+Thumbs.db
