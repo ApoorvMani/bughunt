@@ -19,7 +19,7 @@ An offline-first, agentic AI red-team system built from scratch.
 ## Setup
 
 \```bash
-git clone https://github.com/YOUR_USERNAME/bughunt
+git clone https://github.com/ApoorvManibughunt
 cd bughunt
 python3 -m venv .venv
 source .venv/bin/activate
