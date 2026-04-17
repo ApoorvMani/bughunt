@@ -7,12 +7,25 @@ from bughunt.tools.registry import call_tool, list_tools
 
 def parse_react_response(text: str) -> dict:
     thought = re.search(r"Thought:\s*(.+?)(?=\nAction:|\nAnswer:|$)", text, re.DOTALL)
-    action = re.search(r"Action:\s*(\{.+\}|null)", text, re.DOTALL)
+    action = re.search(r"Action:\s*(.+?)(?=\nThought:|\nObservation:|\nAnswer:|\Z)", text, re.DOTALL)
     answer = re.search(r"Answer:\s*(.+?)$", text, re.DOTALL)
+
+    action_data = None
+    parse_error = False
+
+    if action:
+        raw = action.group(1).strip()
+        if raw != "null":
+            try:
+                action_data = json.loads(raw)
+            except json.JSONDecodeError:
+                parse_error = True
 
     return {
         "thought": thought.group(1).strip() if thought else None,
-        "action": json.loads(action.group(1)) if action and action.group(1) != "null" else None,
+        "action": action_data,
+        "answer": answer.group(1).strip() if answer else None,
+        "parse_error": parse_error,
         "answer": answer.group(1).strip() if answer else None,
     }
 
@@ -33,6 +46,14 @@ class ReActLoop:
             self.history.add("assistant", response)
 
             parsed = parse_react_response(response)
+
+            for attempt in range(2):
+                if not parsed["parse_error"]:
+                    break
+                self.history.add("user", 'Your Action was not valid JSON. Output ONLY a JSON object in this exact format: {"tool": "tool_name", "args": {}}')
+                response = self.llm.chat(self.history.to_prompt())
+                self.history.add("assistant", response)
+                parsed = parse_react_response(response)
 
             if parsed["answer"]:
                 return parsed["answer"]

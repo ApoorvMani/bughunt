@@ -7,7 +7,7 @@ name = "bughunt"
 version = "0.1.0"
 description = "Offline-first agentic AI red-team system"
 requires-python = ">=3.11"
-dependencies = ["requests>=2.31"]
+dependencies = ["requests>=2.31", "tiktoken>=0.7"]
 
 [project.scripts]
 bughunt = "bughunt.cli.main:app"
