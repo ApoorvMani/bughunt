@@ -2,6 +2,8 @@ import json
 import re
 from bughunt.agent.history import ConversationHistory
 from bughunt.agent.prompts.loader import load_prompt
+from bughunt.tools.registry import call_tool, list_tools
+
 
 def parse_react_response(text: str) -> dict:
     thought = re.search(r"Thought:\s*(.+?)(?=\nAction:|\nAnswer:|$)", text, re.DOTALL)
@@ -20,6 +22,7 @@ class ReActLoop:
         self.max_steps = max_steps
         self.history = ConversationHistory()
         system_prompt = load_prompt("react_agent")
+        system_prompt = system_prompt + "\n\nAvailable tools:\n" + list_tools()
         self.history.add("system", system_prompt)
 
     def run(self, user_input: str) -> str:
@@ -35,7 +38,7 @@ class ReActLoop:
                 return parsed["answer"]
 
             if parsed["action"]:
-                observation = "Tool not implemented yet."
+                observation = call_tool(parsed["action"]["tool"], parsed["action"]["args"])
                 self.history.add("tool_result", f"Observation: {observation}")
 
         return "Max steps reached without an answer."
