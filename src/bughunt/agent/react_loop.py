@@ -1,9 +1,9 @@
 import json
 import re
+import difflib
 from bughunt.agent.history import ConversationHistory
 from bughunt.agent.prompts.loader import load_prompt
-from bughunt.tools.registry import call_tool, list_tools
-
+from bughunt.tools.registry import call_tool, list_tools, REGISTRY
 
 def parse_react_response(text: str) -> dict:
     thought = re.search(r"Thought:\s*(.+?)(?=\nAction:|\nAnswer:|$)", text, re.DOTALL)
@@ -51,6 +51,14 @@ class ReActLoop:
                 if not parsed["parse_error"]:
                     break
                 self.history.add("user", 'Your Action was not valid JSON. Output ONLY a JSON object in this exact format: {"tool": "tool_name", "args": {}}')
+                response = self.llm.chat(self.history.to_prompt())
+                self.history.add("assistant", response)
+                parsed = parse_react_response(response)
+
+            if parsed["action"] and parsed["action"]["tool"] not in list(REGISTRY.keys()):
+                close = difflib.get_close_matches(parsed["action"]["tool"], list(REGISTRY.keys()), n=1)
+                suggestion = f" Did you mean: {close[0]}?" if close else ""
+                self.history.add("user", f"Tool '{parsed['action']['tool']}' does not exist.{suggestion} Available tools: {list(REGISTRY.keys())}")
                 response = self.llm.chat(self.history.to_prompt())
                 self.history.add("assistant", response)
                 parsed = parse_react_response(response)
